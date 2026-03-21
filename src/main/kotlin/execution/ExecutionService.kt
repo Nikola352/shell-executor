@@ -15,15 +15,18 @@ import kotlinx.coroutines.launch
 class ExecutionService(
     private val executionRepository: ExecutionRepository,
     private val executorProvider: ExecutorProvider,
-) {
-    private val logger = KtorSimpleLogger(this::class.qualifiedName ?: "ExecutionService")
 
     /*
     Acquiring an executor might contain cpu-bound heuristics or ML operations if it has more complex logic
     than always provisioning, so Dispatchers.Default is idiomatically correct here.
     However, all current implementations are IO-bound, so performance-wise, it would make more sense to use Dispatchers.IO.
+
+    Scope is passed as an optional parameter to make different options possible based on the configuration
+    and to make testing simpler.
     */
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
+) {
+    private val logger = KtorSimpleLogger(this::class.qualifiedName ?: "ExecutionService")
 
     suspend fun getExecution(id: Int): Execution =
         executionRepository.get(id) ?: throw NotFoundException("Execution with id=$id not found")

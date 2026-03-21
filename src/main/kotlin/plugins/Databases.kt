@@ -7,10 +7,11 @@ fun Application.configureDatabases() {
     val url = environment.config.property("postgres.url").getString()
     val user = environment.config.property("postgres.user").getString()
     val password = environment.config.property("postgres.password").getString()
+    val driver = environment.config.property("postgres.driver").getString()
 
     Database.connect(
         url = url,
-        driver = "org.postgresql.Driver",
+        driver = driver,
         user = user,
         password = password,
     )

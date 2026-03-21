@@ -33,7 +33,6 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
-    implementation("com.h2database:h2:$h2Version")
     implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("io.ktor:ktor-server-request-validation")
     implementation("io.ktor:ktor-server-netty")
@@ -42,5 +41,20 @@ dependencies {
     implementation("com.github.docker-java:docker-java-core:$dockerJavaVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerJavaVersion")
     testImplementation("io.ktor:ktor-server-test-host")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+    testImplementation("com.h2database:h2:${h2Version}")
+    testImplementation("io.ktor:ktor-client-content-negotiation")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.testcontainers:testcontainers:1.20.4")
+    testImplementation("org.testcontainers:postgresql:1.20.4")
+}
+
+tasks.test {
+    useJUnitPlatform { excludeTags("docker", "aws") }
+}
+
+tasks.register<Test>("integrationTest") {
+    useJUnitPlatform { includeTags("docker", "aws") }
 }
