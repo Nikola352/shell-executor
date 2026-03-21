@@ -6,6 +6,8 @@ import com.github.nikola352.execution.ExecutionRepository
 import com.github.nikola352.execution.ExecutionService
 import com.github.nikola352.execution.api.dto.ExecutionRequest
 import com.github.nikola352.execution.api.executionRoutes
+import com.github.nikola352.executor.ExecutorProvider
+import com.github.nikola352.executor.stub.StubExecutorProvider
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -42,7 +44,8 @@ fun Application.configureRouting() {
     }
 
     val executionRepository = ExecutionRepository()
-    val executionService = ExecutionService(executionRepository)
+    val executorProvider: ExecutorProvider = StubExecutorProvider()
+    val executionService = ExecutionService(executionRepository, executorProvider)
 
     routing {
         executionRoutes(executionService)
