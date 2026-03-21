@@ -59,6 +59,14 @@ class ExecutionRepository {
         }
     }
 
+    suspend fun updateFailed(id: Int) {
+        dbQuery {
+            Executions.update({ Executions.id eq id }) {
+                it[status] = ExecutionStatus.FAILED
+            }
+        }
+    }
+
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 }

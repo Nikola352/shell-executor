@@ -8,3 +8,7 @@ postgres:
   url: "jdbc:postgresql://localhost:5432/shell-executor"
   user: postgres
   password: postgres
+docker:
+  host: "unix:///var/run/docker.sock"
+  tls-verify: false
+  cert-path: ""

@@ -7,4 +7,5 @@ enum class ExecutionStatus {
     QUEUED,
     IN_PROGRESS,
     FINISHED,
+    FAILED,
 }

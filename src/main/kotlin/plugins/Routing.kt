@@ -7,7 +7,8 @@ import com.github.nikola352.execution.ExecutionService
 import com.github.nikola352.execution.api.dto.ExecutionRequest
 import com.github.nikola352.execution.api.executionRoutes
 import com.github.nikola352.executor.ExecutorProvider
-import com.github.nikola352.executor.stub.StubExecutorProvider
+import com.github.nikola352.executor.docker.DockerConfig
+import com.github.nikola352.executor.docker.DockerExecutorProvider
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -44,7 +45,10 @@ fun Application.configureRouting() {
     }
 
     val executionRepository = ExecutionRepository()
-    val executorProvider: ExecutorProvider = StubExecutorProvider()
+    val dockerHost = environment.config.property("docker.host").getString()
+    val tlsVerify = environment.config.property("docker.tls-verify").getString().toBoolean()
+    val certPath = environment.config.property("docker.cert-path").getString().ifBlank { null }
+    val executorProvider: ExecutorProvider = DockerExecutorProvider(DockerConfig(dockerHost, tlsVerify, certPath))
     val executionService = ExecutionService(executionRepository, executorProvider)
 
     routing {

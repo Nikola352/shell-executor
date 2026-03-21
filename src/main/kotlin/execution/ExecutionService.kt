@@ -6,6 +6,7 @@ import com.github.nikola352.execution.model.Execution
 import com.github.nikola352.execution.model.ExecutionStatus
 import com.github.nikola352.executor.ExecutorProvider
 import com.github.nikola352.executor.withExecutor
+import io.ktor.util.logging.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,6 +16,13 @@ class ExecutionService(
     private val executionRepository: ExecutionRepository,
     private val executorProvider: ExecutorProvider,
 ) {
+    private val logger = KtorSimpleLogger(this::class.qualifiedName ?: "ExecutionService")
+
+    /*
+    Acquiring an executor might contain cpu-bound heuristics or ML operations if it has more complex logic
+    than always provisioning, so Dispatchers.Default is idiomatically correct here.
+    However, all current implementations are IO-bound, so performance-wise, it would make more sense to use Dispatchers.IO.
+    */
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun getExecution(id: Int): Execution =
@@ -24,10 +32,15 @@ class ExecutionService(
         val id = executionRepository.create(request.command)
 
         scope.launch {
-            executorProvider.withExecutor(request.resources) { executor ->
-                executionRepository.updateStatus(id, ExecutionStatus.IN_PROGRESS)
-                val result = executor.execute(request.command)
-                executionRepository.updateResult(id, result)
+            try {
+                executorProvider.withExecutor(request.resources) { executor ->
+                    executionRepository.updateStatus(id, ExecutionStatus.IN_PROGRESS)
+                    val result = executor.execute(request.command)
+                    executionRepository.updateResult(id, result)
+                }
+            } catch (e: Exception) {
+                logger.error("Execution $id failed: ${e.message}", e)
+                executionRepository.updateFailed(id)
             }
         }
 
