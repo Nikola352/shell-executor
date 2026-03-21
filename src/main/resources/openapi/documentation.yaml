@@ -1,0 +1,88 @@
+openapi: "3.1.0"
+info:
+  title: Shell Executor API
+  version: "1.0.0"
+paths:
+  /executions:
+    post:
+      summary: Start a new execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionRequest"
+      responses:
+        "201":
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+        "400":
+          description: Bad request
+  /executions/{id}:
+    get:
+      summary: Get execution by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Execution found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Execution"
+        "400":
+          description: Invalid ID
+        "404":
+          description: Execution not found
+components:
+  schemas:
+    ExecutionRequest:
+      type: object
+      required:
+        - command
+        - resources
+      properties:
+        command:
+          type: string
+        resources:
+          $ref: "#/components/schemas/ResourceRequirements"
+    ResourceRequirements:
+      type: object
+      required:
+        - cpuCount
+        - memoryMb
+      properties:
+        cpuCount:
+          type: integer
+        memoryMb:
+          type: integer
+    Execution:
+      type: object
+      required:
+        - id
+        - command
+        - status
+      properties:
+        id:
+          type: integer
+        command:
+          type: string
+        status:
+          $ref: "#/components/schemas/ExecutionStatus"
+    ExecutionStatus:
+      type: string
+      enum:
+        - QUEUED
+        - IN_PROGRESS
+        - FINISHED
+        - FAILED
