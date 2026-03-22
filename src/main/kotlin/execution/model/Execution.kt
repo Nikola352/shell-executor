@@ -7,4 +7,7 @@ data class Execution(
     val id: Int,
     val command: String,
     val status: ExecutionStatus,
+    val exitCode: Int? = null,
+    val stdout: String? = null,
+    val stderr: String? = null,
 )

@@ -29,7 +29,16 @@ class ExecutionRepository {
     suspend fun get(id: Int): Execution? = dbQuery {
         Executions.selectAll()
             .where { Executions.id eq id }
-            .map { Execution(it[Executions.id], it[Executions.command], it[Executions.status]) }
+            .map {
+                Execution(
+                    it[Executions.id],
+                    it[Executions.command],
+                    it[Executions.status],
+                    it[Executions.exitCode],
+                    it[Executions.stdout],
+                    it[Executions.stderr]
+                )
+            }
             .singleOrNull()
     }
 

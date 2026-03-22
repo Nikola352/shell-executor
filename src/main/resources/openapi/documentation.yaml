@@ -79,6 +79,15 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ExecutionStatus"
+        exitCode:
+          type: integer
+          nullable: true
+        stdout:
+          type: string
+          nullable: true
+        stderr:
+          type: string
+          nullable: true
     ExecutionStatus:
       type: string
       enum:
