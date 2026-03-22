@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.*
 
 class ExecutionRepository {
     object Executions : Table() {
@@ -16,6 +17,7 @@ class ExecutionRepository {
         val exitCode = integer("exit_code").nullable()
         val stdout = text("stdout").nullable()
         val stderr = text("stderr").nullable()
+        val idempotencyKey = uuid("idempotency_key").nullable().uniqueIndex()
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -42,10 +44,11 @@ class ExecutionRepository {
             .singleOrNull()
     }
 
-    suspend fun create(command: String): Int = dbQuery {
+    suspend fun create(command: String, idempotencyKey: UUID? = null): Int = dbQuery {
         Executions.insert {
             it[this.command] = command
             it[status] = ExecutionStatus.QUEUED
+            it[this.idempotencyKey] = idempotencyKey
         }[Executions.id]
     }
 
@@ -74,6 +77,22 @@ class ExecutionRepository {
                 it[status] = ExecutionStatus.FAILED
             }
         }
+    }
+
+    suspend fun findByIdempotencyKey(idempotencyKey: UUID): Execution? = dbQuery {
+        Executions.selectAll()
+            .where { Executions.idempotencyKey eq idempotencyKey }
+            .map {
+                Execution(
+                    it[Executions.id],
+                    it[Executions.command],
+                    it[Executions.status],
+                    it[Executions.exitCode],
+                    it[Executions.stdout],
+                    it[Executions.stderr]
+                )
+            }
+            .singleOrNull()
     }
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =

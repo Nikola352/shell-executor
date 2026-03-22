@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import java.util.*
 
 class ExecutionService(
     private val executionRepository: ExecutionRepository,
@@ -31,8 +33,19 @@ class ExecutionService(
     suspend fun getExecution(id: Int): Execution =
         executionRepository.get(id) ?: throw NotFoundException("Execution with id=$id not found")
 
-    suspend fun startExecution(request: ExecutionRequest): Int {
-        val id = executionRepository.create(request.command)
+    suspend fun startExecution(request: ExecutionRequest, idempotencyKey: UUID? = null): Int {
+        if (idempotencyKey != null) {
+            executionRepository.findByIdempotencyKey(idempotencyKey)?.let { return it.id }
+        }
+
+        val id = try {
+            executionRepository.create(request.command, idempotencyKey)
+        } catch (e: ExposedSQLException) {
+            if (idempotencyKey != null && e.sqlState == "23505") { // unique constraint
+                return executionRepository.findByIdempotencyKey(idempotencyKey)!!.id
+            }
+            throw e
+        }
 
         scope.launch {
             try {

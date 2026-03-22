@@ -2,19 +2,16 @@ package com.github.nikola352
 
 import com.github.nikola352.execution.model.Execution
 import com.github.nikola352.execution.model.ExecutionStatus
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.get
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.config.MapApplicationConfig
-import io.ktor.server.testing.testApplication
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.config.*
+import io.ktor.server.testing.*
 import kotlinx.coroutines.delay
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -67,6 +64,39 @@ class ApplicationTest {
         val response = client.post("/executions") {
             contentType(ContentType.Application.Json)
             setBody("""{"command":"  ","resources":{"cpuCount":1,"memoryMb":512}}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST with idempotency key twice returns same id and 201 on second call`() = testApp { client ->
+        val key = UUID.randomUUID().toString()
+
+        val first = client.post("/executions") {
+            contentType(ContentType.Application.Json)
+            header("Idempotency-Key", key)
+            setBody("""{"command":"echo hello","resources":{"cpuCount":1,"memoryMb":512}}""")
+        }
+        assertEquals(HttpStatusCode.Created, first.status)
+        val firstId = first.body<Map<String, Int>>()["id"]!!
+
+        val second = client.post("/executions") {
+            contentType(ContentType.Application.Json)
+            header("Idempotency-Key", key)
+            setBody("""{"command":"echo hello","resources":{"cpuCount":1,"memoryMb":512}}""")
+        }
+        assertEquals(HttpStatusCode.Created, second.status)
+        val secondId = second.body<Map<String, Int>>()["id"]!!
+
+        assertEquals(firstId, secondId)
+    }
+
+    @Test
+    fun `POST with invalid idempotency key UUID returns 400`() = testApp { client ->
+        val response = client.post("/executions") {
+            contentType(ContentType.Application.Json)
+            header("Idempotency-Key", "not-a-uuid")
+            setBody("""{"command":"echo hello","resources":{"cpuCount":1,"memoryMb":512}}""")
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }

@@ -6,6 +6,16 @@ paths:
   /executions:
     post:
       summary: Start a new execution
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: >
+            Client-generated UUID for idempotent submission. If provided and an execution
+            with this key already exists, that execution is returned instead of creating a new one.
       requestBody:
         required: true
         content:
@@ -14,7 +24,7 @@ paths:
               $ref: "#/components/schemas/ExecutionRequest"
       responses:
         "201":
-          description: Execution started
+          description: Execution started (or already exists for the given idempotency key)
           content:
             application/json:
               schema:
@@ -23,7 +33,7 @@ paths:
                   id:
                     type: integer
         "400":
-          description: Bad request
+          description: Bad request (invalid command or malformed Idempotency-Key)
   /executions/{id}:
     get:
       summary: Get execution by ID
