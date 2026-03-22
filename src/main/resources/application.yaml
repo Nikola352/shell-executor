@@ -5,13 +5,25 @@ ktor:
   deployment:
     port: 8080
 postgres:
-  url: "jdbc:postgresql://localhost:5432/shell-executor"
+  url: "${POSTGRES_URL:jdbc:postgresql://localhost:5432/shell-executor}"
   driver: "org.postgresql.Driver"
-  user: postgres
-  password: postgres
+  user: "${POSTGRES_USER:postgres}"
+  password: "${POSTGRES_PASSWORD:postgres}"
 executor:
-  type: docker
+  type: "${EXECUTOR_TYPE:docker}"   # options: docker | aws | stub
 docker:
-  host: "unix:///var/run/docker.sock"
+  host: "${DOCKER_HOST:unix:///var/run/docker.sock}"
   tls-verify: false
   cert-path: ""
+aws:
+  region: "${AWS_REGION:eu-central-1}"
+  ami-id: "${AWS_AMI_ID:ami-05852c5f195d545ea}"    # Ubuntu 22.04 LTS x86_64 eu-central-1
+  key-name: "${AWS_KEY_NAME}"                      # EC2 key pair name in your AWS account
+  pem-path: "${AWS_PEM_PATH}"                      # absolute path to .pem — keep outside the project
+  security-group-id: "${AWS_SECURITY_GROUP_ID}"
+  subnet-id: "${AWS_SUBNET_ID}"
+  ssh-user: "${AWS_SSH_USER:ubuntu}"
+  ssh-port: "${AWS_SSH_PORT:22}"
+  instance-timeout-seconds: "${AWS_INSTANCE_TIMEOUT_SECONDS:120}"
+  ssh-timeout-seconds: "${AWS_SSH_TIMEOUT_SECONDS:120}"
+  ssh-retry-interval-ms: "${AWS_SSH_RETRY_INTERVAL_MS:5000}"

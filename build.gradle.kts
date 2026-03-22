@@ -4,6 +4,8 @@ val kotlinVersion: String by project
 val logbackVersion: String by project
 val postgresVersion: String by project
 val dockerJavaVersion: String by project
+val awsSdkKotlinVersion: String by project
+val sshdVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.3.0"
@@ -40,6 +42,9 @@ dependencies {
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("com.github.docker-java:docker-java-core:$dockerJavaVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerJavaVersion")
+    implementation("aws.sdk.kotlin:ec2:$awsSdkKotlinVersion")
+    implementation("org.apache.sshd:sshd-core:$sshdVersion")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("com.h2database:h2:${h2Version}")
     testImplementation("io.ktor:ktor-client-content-negotiation")

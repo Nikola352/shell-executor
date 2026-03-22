@@ -34,3 +34,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### AWS credentials ###
+*.pem
+
+### Local environment variables ###
+.env
