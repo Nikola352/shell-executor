@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shell Executor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span { color: #60a5fa; }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: #3b82f6;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .key-row {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .key-row > div { flex: 1; }
+
+    .btn-icon {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-icon:hover { color: #94a3b8; border-color: #3b4166; }
+
+    button[type="submit"] {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.7rem;
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button[type="submit"]:hover { background: #2563eb; }
+    button[type="submit"]:disabled { background: #1e3a5f; color: #4b6a96; cursor: not-allowed; }
+
+    /* Status */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge-idle     { background: #1e2130; color: #475569; border: 1px solid #2d3148; }
+    .badge-queued   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .badge-progress { background: #1e3a5f; color: #60a5fa; border: 1px solid #1d4ed8; }
+    .badge-finished { background: #14291f; color: #4ade80; border: 1px solid #16a34a; }
+    .badge-failed   { background: #2a1215; color: #f87171; border: 1px solid #991b1b; }
+
+    .exec-id {
+      font-size: 0.8rem;
+      color: #475569;
+      font-family: monospace;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #1d4ed8;
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .result-block { margin-top: 0.75rem; }
+
+    .result-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .exit-code {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.85rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+    }
+
+    .exit-ok  { color: #4ade80; }
+    .exit-err { color: #f87171; }
+
+    pre {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 240px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #cbd5e1;
+    }
+
+    pre.empty { color: #475569; font-style: italic; }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1><span>Shell</span> Executor</h1>
+
+  <!-- Submit form -->
+  <div class="card">
+    <div class="card-title">New Execution</div>
+    <form id="execForm">
+      <div>
+        <label for="command">Command</label>
+        <input type="text" id="command" placeholder="echo hello world" required>
+      </div>
+      <div class="row">
+        <div>
+          <label for="cpuCount">CPU Count</label>
+          <input type="number" id="cpuCount" value="1" min="1" required>
+        </div>
+        <div>
+          <label for="memoryMb">Memory (MB)</label>
+          <input type="number" id="memoryMb" value="512" min="1" required>
+        </div>
+      </div>
+      <div class="key-row">
+        <div>
+          <label for="idempotencyKey">Idempotency-Key</label>
+          <input type="text" id="idempotencyKey" readonly>
+        </div>
+        <button type="button" class="btn-icon" id="regenKey" title="Generate new key">&#x21bb; Regenerate</button>
+      </div>
+      <div id="formError" class="error-msg hidden"></div>
+      <button type="submit" id="submitBtn">Execute</button>
+    </form>
+  </div>
+
+  <!-- Status -->
+  <div class="card" id="statusCard">
+    <div class="card-title">Status</div>
+    <div class="status-row">
+      <span class="badge badge-idle" id="statusBadge">Idle</span>
+      <span class="exec-id" id="execId"></span>
+      <span class="spinner hidden" id="spinner"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="resultsCard">
+    <div class="card-title">Results</div>
+
+    <div class="result-block" id="exitCodeBlock">
+      <div class="result-label">Exit Code</div>
+      <span class="exit-code" id="exitCodeVal">—</span>
+    </div>
+
+    <div class="result-block">
+      <div class="result-label">stdout</div>
+      <pre id="stdoutVal" class="empty">(empty)</pre>
+    </div>
+
+    <div class="result-block">
+      <div class="result-label">stderr</div>
+      <pre id="stderrVal" class="empty">(empty)</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+  const genUUID = () => crypto.randomUUID();
+
+  const $ = id => document.getElementById(id);
+
+  // Init idempotency key
+  $('idempotencyKey').value = genUUID();
+  $('regenKey').addEventListener('click', () => {
+    $('idempotencyKey').value = genUUID();
+  });
+
+  let pollInterval = null;
+
+  function stopPolling() {
+    if (pollInterval !== null) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+  }
+
+  function setStatus(status, execId) {
+    const badge = $('statusBadge');
+    const spinner = $('spinner');
+    badge.className = 'badge';
+    spinner.classList.add('hidden');
+
+    if (status === null) {
+      badge.classList.add('badge-idle');
+      badge.textContent = 'Idle';
+      $('execId').textContent = '';
+      return;
+    }
+
+    $('execId').textContent = execId != null ? `#${execId}` : '';
+
+    switch (status) {
+      case 'QUEUED':
+        badge.classList.add('badge-queued');
+        badge.textContent = 'Queued';
+        spinner.classList.remove('hidden');
+        break;
+      case 'IN_PROGRESS':
+        badge.classList.add('badge-progress');
+        badge.textContent = 'In Progress';
+        spinner.classList.remove('hidden');
+        break;
+      case 'FINISHED':
+        badge.classList.add('badge-finished');
+        badge.textContent = 'Finished';
+        break;
+      case 'FAILED':
+        badge.classList.add('badge-failed');
+        badge.textContent = 'Failed';
+        break;
+      default:
+        badge.classList.add('badge-idle');
+        badge.textContent = status;
+    }
+  }
+
+  function setResults(data) {
+    // Exit code
+    const ec = $('exitCodeVal');
+    if (data.exitCode != null) {
+      ec.textContent = data.exitCode;
+      ec.className = 'exit-code ' + (data.exitCode === 0 ? 'exit-ok' : 'exit-err');
+    } else {
+      ec.textContent = '—';
+      ec.className = 'exit-code';
+    }
+
+    // stdout
+    const so = $('stdoutVal');
+    if (data.stdout) {
+      so.textContent = data.stdout;
+      so.classList.remove('empty');
+    } else {
+      so.textContent = '(empty)';
+      so.classList.add('empty');
+    }
+
+    // stderr
+    const se = $('stderrVal');
+    if (data.stderr) {
+      se.textContent = data.stderr;
+      se.classList.remove('empty');
+    } else {
+      se.textContent = '(empty)';
+      se.classList.add('empty');
+    }
+  }
+
+  function resetResults() {
+    $('exitCodeVal').textContent = '—';
+    $('exitCodeVal').className = 'exit-code';
+    $('stdoutVal').textContent = '(empty)';
+    $('stdoutVal').classList.add('empty');
+    $('stderrVal').textContent = '(empty)';
+    $('stderrVal').classList.add('empty');
+  }
+
+  async function pollExecution(id) {
+    try {
+      const res = await fetch(`/executions/${id}`);
+      if (!res.ok) { stopPolling(); return; }
+      const data = await res.json();
+      setStatus(data.status, data.id);
+      setResults(data);
+      if (data.status === 'FINISHED' || data.status === 'FAILED') {
+        stopPolling();
+        $('submitBtn').disabled = false;
+      }
+    } catch (e) {
+      // network error — keep polling
+    }
+  }
+
+  $('execForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    stopPolling();
+    resetResults();
+
+    const formError = $('formError');
+    formError.classList.add('hidden');
+
+    const command = $('command').value.trim();
+    const cpuCount = parseInt($('cpuCount').value, 10);
+    const memoryMb = parseInt($('memoryMb').value, 10);
+    const idempotencyKey = $('idempotencyKey').value.trim();
+
+    $('submitBtn').disabled = true;
+    setStatus('QUEUED', null);
+
+    try {
+      const res = await fetch('/executions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          command,
+          resources: { cpuCount, memoryMb },
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        formError.textContent = `Error ${res.status}: ${text}`;
+        formError.classList.remove('hidden');
+        setStatus(null, null);
+        $('submitBtn').disabled = false;
+        return;
+      }
+
+      const data = await res.json();
+      const execId = data.id;
+
+      // Regenerate key for next submission
+      $('idempotencyKey').value = genUUID();
+
+      // Start polling
+      pollInterval = setInterval(() => pollExecution(execId), 1000);
+      // Also fire immediately
+      pollExecution(execId);
+
+    } catch (err) {
+      formError.textContent = `Network error: ${err.message}`;
+      formError.classList.remove('hidden');
+      setStatus(null, null);
+      $('submitBtn').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

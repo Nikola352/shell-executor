@@ -7,6 +7,7 @@ import com.github.nikola352.execution.api.dto.ExecutionRequest
 import com.github.nikola352.execution.api.executionRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
@@ -44,6 +45,7 @@ fun Application.configureRouting() {
     val executionService = components.executionService
 
     routing {
+        staticResources("/", "static")
         executionRoutes(executionService)
     }
 }
